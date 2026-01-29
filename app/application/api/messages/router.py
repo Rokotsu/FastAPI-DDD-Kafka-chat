@@ -1,12 +1,21 @@
-from datetime import datetime
 from functools import lru_cache
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
 
+from app.application.api.messages.schemas import ChatCreateRequest, ChatResponse
+from app.domain.exceptions import messages as domain_exceptions
+from app.domain.exceptions.messages import ApplicationException
 from app.infra.repositories.messages import MemoryChatRepository
-from app.logic.commands.messages import CreateChatCommand
-from app.logic.exceptions.messages import CheckWithThatTitleAlreadyExistsException
+from app.logic.commands.messages import (
+    CreateChatCommand,
+    CreateMessageCommand,
+    GetChatCommand,
+    ListChatsCommand,
+)
+from app.logic.exceptions.messages import (
+    ChatNotFoundException,
+    CheckWithThatTitleAlreadyExistsException,
+)
 from app.logic.init import init_mediator
 from app.logic.mediator import Mediator
 
@@ -17,10 +26,24 @@ class ChatCreateRequest(BaseModel):
     title: str
 
 
+class MessageCreateRequest(BaseModel):
+    text: str
+
+
 class ChatResponse(BaseModel):
     oid: str
     title: str
     created_at: datetime
+
+
+class MessageResponse(BaseModel):
+    oid: str
+    text: str
+    created_at: datetime
+
+
+class ChatDetailResponse(ChatResponse):
+    messages: list[MessageResponse]
 
 
 class ChatService:
@@ -34,6 +57,46 @@ class ChatService:
             oid=chat.oid,
             title=chat.title.as_generic_type(),
             created_at=chat.created_at,
+        )
+
+    async def list_chats(self) -> list[ChatResponse]:
+        results = await self._mediator.handle_command(ListChatsCommand())
+        chats = results[0]
+        return [
+            ChatResponse(
+                oid=chat.oid,
+                title=chat.title.as_generic_type(),
+                created_at=chat.created_at,
+            )
+            for chat in chats
+        ]
+
+    async def get_chat(self, chat_oid: str) -> ChatDetailResponse:
+        results = await self._mediator.handle_command(GetChatCommand(chat_oid=chat_oid))
+        chat = results[0]
+        return ChatDetailResponse(
+            oid=chat.oid,
+            title=chat.title.as_generic_type(),
+            created_at=chat.created_at,
+            messages=[
+                MessageResponse(
+                    oid=message.oid,
+                    text=message.text.as_generic_type(),
+                    created_at=message.created_at,
+                )
+                for message in sorted(chat.messages, key=lambda item: item.created_at)
+            ],
+        )
+
+    async def create_message(self, chat_oid: str, text: str) -> MessageResponse:
+        results = await self._mediator.handle_command(
+            CreateMessageCommand(chat_oid=chat_oid, text=text)
+        )
+        message = results[0]
+        return MessageResponse(
+            oid=message.oid,
+            text=message.text.as_generic_type(),
+            created_at=message.created_at,
         )
 
 
@@ -56,8 +119,65 @@ async def create_chat(
 ) -> ChatResponse:
     try:
         return await service.create_chat(payload.title)
+    except ApplicationException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=exc.message,
+        ) from exc
     except CheckWithThatTitleAlreadyExistsException as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
+            detail=exc.message,
+        ) from exc
+    except domain_exceptions.EmptyTextException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=exc.message,
+        ) from exc
+    except (
+        domain_exceptions.TextTooLongException,
+        domain_exceptions.TitleTooLongException,
+    ) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+
+
+@router.get("", response_model=list[ChatResponse])
+async def list_chats(
+    service: ChatService = Depends(get_chat_service),
+) -> list[ChatResponse]:
+    return await service.list_chats()
+
+
+@router.get("/{chat_oid}", response_model=ChatDetailResponse)
+async def get_chat(
+    chat_oid: str,
+    service: ChatService = Depends(get_chat_service),
+) -> ChatDetailResponse:
+    try:
+        return await service.get_chat(chat_oid)
+    except ChatNotFoundException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=exc.message,
+        ) from exc
+
+
+@router.post("/{chat_oid}/messages", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
+async def create_message(
+    chat_oid: str,
+    payload: MessageCreateRequest,
+    service: ChatService = Depends(get_chat_service),
+) -> MessageResponse:
+    try:
+        return await service.create_message(chat_oid, payload.text)
+    except ChatNotFoundException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=exc.message,
+        ) from exc
+    except ApplicationException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail=exc.message,
         ) from exc

@@ -4,6 +4,7 @@ LOGS = docker logs
 ENV = --env-file .env
 APP_FILE = docker_compose/app.yaml
 APP_CONTAINER = main-app
+FRONTEND_SERVICE = frontend
 
 .PHONY: app
 app:
@@ -21,4 +22,7 @@ app-shell:
 app-logs:
 	${LOGS} ${APP_CONTAINER} -f
 
+.PHONY: frontend
+frontend:
+	${DC} -f ${APP_FILE} ${ENV} up --build -d ${FRONTEND_SERVICE}
 
