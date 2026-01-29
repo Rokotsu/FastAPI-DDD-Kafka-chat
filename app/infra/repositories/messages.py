@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
-from app.domain.entities.messages import Chat
+from app.domain.entities.messages import Chat, Message
 
 
 @dataclass
@@ -11,6 +11,17 @@ class BaseChatRepository(ABC):
         ...
     @abstractmethod
     async def add_chat(self, chat: Chat) -> None:
+        ...
+    @abstractmethod
+    async def list_chats(self) -> list[Chat]:
+        ...
+
+    @abstractmethod
+    async def get_chat_by_oid(self, chat_oid: str) -> Chat | None:
+        ...
+
+    @abstractmethod
+    async def add_message(self, chat_oid: str, message: Message) -> Chat | None:
         ...
 
 @dataclass
@@ -27,3 +38,19 @@ class MemoryChatRepository(BaseChatRepository):
 
     async def add_chat(self, chat: Chat) -> None:
         self._saved_chats.append(chat)
+
+    async def list_chats(self) -> list[Chat]:
+        return list(self._saved_chats)
+
+    async def get_chat_by_oid(self, chat_oid: str) -> Chat | None:
+        try:
+            return next(chat for chat in self._saved_chats if chat.oid == chat_oid)
+        except StopIteration:
+            return None
+
+    async def add_message(self, chat_oid: str, message: Message) -> Chat | None:
+        chat = await self.get_chat_by_oid(chat_oid)
+        if chat is None:
+            return None
+        chat.add_messages(message)
+        return chat
