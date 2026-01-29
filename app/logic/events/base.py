@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Generic, TypeVar, Any
 
@@ -9,5 +9,6 @@ ER = TypeVar(name='ER', bound=Any)
 
 @dataclass
 class EventHandler(ABC, Generic[ET, ER]):
-    def handler(self, event: ET) -> ER:
+    @abstractmethod
+    async def handle(self, event: ET) -> ER:
         ...
