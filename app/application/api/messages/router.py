@@ -2,12 +2,15 @@ from functools import lru_cache
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.logic.commands.messages import CreateChatCommand
-from app.logic.exceptions.messages import CheckWithThatTitleAlreadyExistsException
-from app.application.api.messages.schemas import ChatCreateRequest, ChatResponse
+from app.application.api.messages.schemas import (
+    ChatCreateRequest,
+    ChatDetailResponse,
+    ChatResponse,
+    MessageCreateRequest,
+    MessageResponse,
+)
 from app.domain.exceptions import messages as domain_exceptions
 from app.domain.exceptions.messages import ApplicationException
-from app.infra.repositories.messages import MemoryChatRepository
 from app.logic.commands.messages import (
     CreateChatCommand,
     CreateMessageCommand,
@@ -22,30 +25,6 @@ from app.logic.init import init_mediator
 from app.logic.mediator import Mediator
 
 router = APIRouter(prefix="/api/chats", tags=["chats"])
-
-
-class ChatCreateRequest(BaseModel):
-    title: str
-
-
-class MessageCreateRequest(BaseModel):
-    text: str
-
-
-class ChatResponse(BaseModel):
-    oid: str
-    title: str
-    created_at: datetime
-
-
-class MessageResponse(BaseModel):
-    oid: str
-    text: str
-    created_at: datetime
-
-
-class ChatDetailResponse(ChatResponse):
-    messages: list[MessageResponse]
 
 
 class ChatService:
@@ -141,6 +120,8 @@ async def create_chat(
     ) as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=exc.message,
+        ) from exc
 
 
 @router.get("", response_model=list[ChatResponse])
