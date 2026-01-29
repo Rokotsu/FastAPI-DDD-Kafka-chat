@@ -1,5 +1,10 @@
 from dataclasses import dataclass
 
+from app.domain.exceptions.messages import (
+    EmptyTextException,
+    TextTooLongException,
+    TitleTooLongException,
+)
 from app.domain.exceptions.messages import TextTooLongException, EmptyTextException
 from app.domain.values.base import BaseValueObject
 
@@ -23,7 +28,7 @@ class Title(BaseValueObject):
             raise EmptyTextException()
 
         if len(self.value) > 255:
-            raise TextTooLongException(self.value)
+            raise TitleTooLongException(self.value)
 
     def as_generic_type(self):
         return str(self.value)
