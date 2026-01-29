@@ -1,6 +1,6 @@
 # FastAPI + Kafka DDD chat Application w\ MongoDB
 
-This is a basic template for Django projects configured to use Docker Compose, Makefile, and PostgreSQL.
+This is a basic template for FastAPI chat projects configured to use Docker Compose, Makefile, and a Vite + React frontend.
 
 ## Requirements
 
@@ -25,6 +25,7 @@ This is a basic template for Django projects configured to use Docker Compose, M
 * `make app-logs` - follow the logs in app container
 * `make app-down` - down application and all infrastructure
 * `make app-shell` - go to contenerized interactive shell (bash)
+* `make frontend` - run Vite + React frontend
 
 ### Most Used Django Specific Commands
 
@@ -32,3 +33,23 @@ This is a basic template for Django projects configured to use Docker Compose, M
 * `make migrate` - apply all made migrations
 * `make collectstatic` - collect static
 * `make superuser` - create admin user
+
+## Frontend
+
+The frontend lives in `frontend/` and proxies API calls to the FastAPI container.
+
+### Run frontend with Docker
+
+1. Start the backend:
+
+   ```bash
+   make app
+   ```
+
+2. Start the frontend:
+
+   ```bash
+   make frontend
+   ```
+
+3. Open the UI at [http://localhost:5173](http://localhost:5173) and submit a chat title.
