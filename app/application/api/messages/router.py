@@ -1,9 +1,9 @@
-from datetime import datetime
 from functools import lru_cache
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
 
+from app.application.api.messages.schemas import ChatCreateRequest, ChatResponse
+from app.domain.exceptions import messages as domain_exceptions
 from app.infra.repositories.messages import MemoryChatRepository
 from app.logic.commands.messages import CreateChatCommand
 from app.logic.exceptions.messages import CheckWithThatTitleAlreadyExistsException
@@ -11,16 +11,6 @@ from app.logic.init import init_mediator
 from app.logic.mediator import Mediator
 
 router = APIRouter(prefix="/api/chats", tags=["chats"])
-
-
-class ChatCreateRequest(BaseModel):
-    title: str
-
-
-class ChatResponse(BaseModel):
-    oid: str
-    title: str
-    created_at: datetime
 
 
 class ChatService:
@@ -59,5 +49,18 @@ async def create_chat(
     except CheckWithThatTitleAlreadyExistsException as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
+            detail=exc.message,
+        ) from exc
+    except domain_exceptions.EmptyTextException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=exc.message,
+        ) from exc
+    except (
+        domain_exceptions.TextTooLongException,
+        domain_exceptions.TitleTooLongException,
+    ) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=exc.message,
         ) from exc
