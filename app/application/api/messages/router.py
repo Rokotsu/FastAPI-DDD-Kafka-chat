@@ -2,6 +2,8 @@ from functools import lru_cache
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.logic.commands.messages import CreateChatCommand
+from app.logic.exceptions.messages import CheckWithThatTitleAlreadyExistsException
 from app.application.api.messages.schemas import ChatCreateRequest, ChatResponse
 from app.domain.exceptions import messages as domain_exceptions
 from app.domain.exceptions.messages import ApplicationException
@@ -103,8 +105,7 @@ class ChatService:
 @lru_cache
 def get_mediator() -> Mediator:
     mediator = Mediator()
-    chat_repository = MemoryChatRepository()
-    init_mediator(mediator=mediator, chat_repository=chat_repository)
+    init_mediator(mediator=mediator)
     return mediator
 
 

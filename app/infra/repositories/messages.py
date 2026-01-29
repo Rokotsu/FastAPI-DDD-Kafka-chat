@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from typing import Iterable
 
 from app.domain.entities.messages import Chat, Message
 
@@ -15,6 +16,12 @@ class BaseChatRepository(ABC):
         ...
 
     @abstractmethod
+    async def get_chat_by_oid(self, oid: str) -> Chat | None:
+        ...
+
+    @abstractmethod
+    async def get_chat_by_title(self, title: str) -> Chat | None:
+        ...
     async def list_chats(self) -> list[Chat]:
         ...
 
