@@ -4,7 +4,6 @@ from functools import lru_cache
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
-from app.infra.repositories.messages import MemoryChatRepository
 from app.logic.commands.messages import CreateChatCommand
 from app.logic.exceptions.messages import CheckWithThatTitleAlreadyExistsException
 from app.logic.init import init_mediator
@@ -40,8 +39,7 @@ class ChatService:
 @lru_cache
 def get_mediator() -> Mediator:
     mediator = Mediator()
-    chat_repository = MemoryChatRepository()
-    init_mediator(mediator=mediator, chat_repository=chat_repository)
+    init_mediator(mediator=mediator)
     return mediator
 
 
