@@ -5,6 +5,7 @@ from app.domain.exceptions.messages import (
     TextTooLongException,
     TitleTooLongException,
 )
+from app.domain.exceptions.messages import TextTooLongException, EmptyTextException
 from app.domain.values.base import BaseValueObject
 
 
