@@ -9,9 +9,11 @@ class BaseChatRepository(ABC):
     @abstractmethod
     async def check_chat_exists_by_title(self, title: str) -> bool:
         ...
+
     @abstractmethod
     async def add_chat(self, chat: Chat) -> None:
         ...
+
     @abstractmethod
     async def list_chats(self) -> list[Chat]:
         ...
@@ -24,15 +26,20 @@ class BaseChatRepository(ABC):
     async def add_message(self, chat_oid: str, message: Message) -> Chat | None:
         ...
 
+
 @dataclass
 class MemoryChatRepository(BaseChatRepository):
     _saved_chats: list[Chat] = field(default_factory=list, kw_only=True)
 
     async def check_chat_exists_by_title(self, title: str) -> bool:
         try:
-            return bool(next(
-                chat for chat in self._saved_chats if chat.title.as_generic_type() == title
-            ))
+            return bool(
+                next(
+                    chat
+                    for chat in self._saved_chats
+                    if chat.title.as_generic_type() == title
+                )
+            )
         except StopIteration:
             return False
 
