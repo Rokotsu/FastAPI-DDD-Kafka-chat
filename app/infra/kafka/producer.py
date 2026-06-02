@@ -1,17 +1,32 @@
 import json
 from dataclasses import asdict, is_dataclass
-
-from aiokafka import AIOKafkaProducer
+from typing import Any, Protocol
 
 from app.domain.events.base import BaseEvent
 
 from app.infra.kafka.config import KafkaBrokerConfig
 
 
+class EventPublisher(Protocol):
+    async def publish(self, event: BaseEvent) -> None:
+        ...
+
+    async def stop(self) -> None:
+        ...
+
+
+class NoopEventPublisher:
+    async def publish(self, event: BaseEvent) -> None:
+        return None
+
+    async def stop(self) -> None:
+        return None
+
+
 class KafkaEventProducer:
     def __init__(self, config: KafkaBrokerConfig) -> None:
         self._config = config
-        self._producer: AIOKafkaProducer | None = None
+        self._producer: Any | None = None
 
     async def publish(self, event: BaseEvent) -> None:
         producer = await self._get_producer()
@@ -25,8 +40,16 @@ class KafkaEventProducer:
         await self._producer.stop()
         self._producer = None
 
-    async def _get_producer(self) -> AIOKafkaProducer:
+    async def _get_producer(self) -> Any:
         if self._producer is None:
+            try:
+                from aiokafka import AIOKafkaProducer
+            except ImportError as exc:
+                raise RuntimeError(
+                    "Kafka support requires the aiokafka package. "
+                    "Install project dependencies or disable KAFKA_ENABLED."
+                ) from exc
+
             self._producer = AIOKafkaProducer(
                 bootstrap_servers=self._config.bootstrap_servers,
             )

@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Iterable
 
 from app.domain.entities.messages import Chat, Message
 
@@ -22,11 +21,9 @@ class BaseChatRepository(ABC):
     @abstractmethod
     async def get_chat_by_title(self, title: str) -> Chat | None:
         ...
-    async def list_chats(self) -> list[Chat]:
-        ...
 
     @abstractmethod
-    async def get_chat_by_oid(self, chat_oid: str) -> Chat | None:
+    async def list_chats(self) -> list[Chat]:
         ...
 
     @abstractmethod
@@ -54,11 +51,21 @@ class MemoryChatRepository(BaseChatRepository):
         self._saved_chats.append(chat)
 
     async def list_chats(self) -> list[Chat]:
-        return list(self._saved_chats)
+        return sorted(self._saved_chats, key=lambda chat: chat.created_at)
 
     async def get_chat_by_oid(self, chat_oid: str) -> Chat | None:
         try:
             return next(chat for chat in self._saved_chats if chat.oid == chat_oid)
+        except StopIteration:
+            return None
+
+    async def get_chat_by_title(self, title: str) -> Chat | None:
+        try:
+            return next(
+                chat
+                for chat in self._saved_chats
+                if chat.title.as_generic_type() == title
+            )
         except StopIteration:
             return None
 

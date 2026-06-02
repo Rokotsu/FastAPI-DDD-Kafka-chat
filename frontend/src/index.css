@@ -4,13 +4,15 @@
 
 body {
   margin: 0;
-  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-  background: #f8fafc;
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  background: #eef2f1;
 }
 
 h1 {
   margin: 0;
-  font-size: 28px;
+  font-size: 26px;
+  letter-spacing: 0;
+  line-height: 1.2;
 }
 
 p {

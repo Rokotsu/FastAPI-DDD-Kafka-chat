@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 
 class ChatCreateRequest(BaseModel):
-    title: str = Field(..., max_length=255)
+    title: str = Field(..., min_length=1, max_length=255)
 
 
 class ChatResponse(BaseModel):
@@ -14,7 +14,7 @@ class ChatResponse(BaseModel):
 
 
 class MessageCreateRequest(BaseModel):
-    text: str
+    text: str = Field(..., min_length=1, max_length=4000)
 
 
 class MessageResponse(BaseModel):

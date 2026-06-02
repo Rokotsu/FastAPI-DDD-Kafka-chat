@@ -5,17 +5,21 @@ from app.domain.exceptions.messages import (
     TextTooLongException,
     TitleTooLongException,
 )
-from app.domain.exceptions.messages import TextTooLongException, EmptyTextException
 from app.domain.values.base import BaseValueObject
+
+MAX_TEXT_LENGTH = 4000
 
 
 @dataclass(frozen=True)
 class Text(BaseValueObject):
-
     value: str
+
     def validate(self):
         if not self.value:
             raise EmptyTextException()
+
+        if len(self.value) > MAX_TEXT_LENGTH:
+            raise TextTooLongException(self.value)
 
     def as_generic_type(self) -> str:
         return str(self.value)

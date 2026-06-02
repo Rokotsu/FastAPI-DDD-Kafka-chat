@@ -1,15 +1,14 @@
 from dataclasses import dataclass
 
 from app.domain.entities.messages import Chat, Message
-from app.domain.values.messages import Title, Text
+from app.domain.values.messages import Text, Title
 from app.infra.repositories.messages import BaseChatRepository
 from app.logic.commands.base import BaseCommand, CommandHandler, CT, CR
-from app.logic.mediator import Mediator
-
 from app.logic.exceptions.messages import (
-    CheckWithThatTitleAlreadyExistsException,
     ChatNotFoundException,
+    CheckWithThatTitleAlreadyExistsException,
 )
+from app.logic.mediator import Mediator
 
 
 @dataclass(frozen=True)
@@ -37,6 +36,7 @@ class CreateMessageCommand(BaseCommand):
 class CreateChatCommandHandler(CommandHandler[CreateChatCommand, Chat]):
     chat_repository: BaseChatRepository
     mediator: Mediator
+
     async def handle(self, command: CreateChatCommand) -> Chat:
         if await self.chat_repository.check_chat_exists_by_title(command.title):
             raise CheckWithThatTitleAlreadyExistsException(command.title)
@@ -73,11 +73,14 @@ class GetChatCommandHandler(CommandHandler[GetChatCommand, Chat]):
 @dataclass(frozen=True)
 class CreateMessageCommandHandler(CommandHandler[CreateMessageCommand, Message]):
     chat_repository: BaseChatRepository
+    mediator: Mediator
 
     async def handle(self, command: CreateMessageCommand) -> Message:
         message = Message(text=Text(value=command.text))
         chat = await self.chat_repository.add_message(command.chat_oid, message)
         if chat is None:
             raise ChatNotFoundException(command.chat_oid)
-        chat.pull_events()
+        events = chat.pull_events()
+        for event in events:
+            await self.mediator.handle_event(event)
         return message
